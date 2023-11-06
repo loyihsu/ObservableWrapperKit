@@ -54,4 +54,39 @@ final class ObservableWrapperKitTests: XCTestCase {
             XCTAssertNil(wrapper)
         }
     }
+
+    func testDeriveValue() {
+        struct DerivableValue: Equatable {
+            var value: SubValue
+            struct SubValue: Equatable {
+                var text: String
+            }
+        }
+
+        let wrapper = ObservableWrapper(
+            initialValue: DerivableValue(
+                value: .init(text: "initial")
+            )
+        )
+
+        XCTAssertEqual(
+            wrapper.wrappedValue,
+            DerivableValue(value: .init(text: "initial"))
+        )
+
+        let derivedWrapper = wrapper.derive(keyPath: \.value.text)
+
+        derivedWrapper.mutate {
+            $0 = "changed"
+        }
+
+        XCTAssertEqual(
+            wrapper.wrappedValue,
+            DerivableValue(value: .init(text: "changed"))
+        )
+
+        addTeardownBlock { [weak wrapper] in
+            XCTAssertNil(wrapper)
+        }
+    }
 }

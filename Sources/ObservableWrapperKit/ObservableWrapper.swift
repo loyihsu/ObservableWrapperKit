@@ -46,6 +46,15 @@
 /// )
 /// ```
 ///
+/// `ObservableWrapper` also supports to derive a wrapper using a wriable keypath.
+/// This allows you to derive a value inside wrapper's value structure
+/// as a new wrapper and writes back changes when changes are made to the new wrapper.
+///
+/// To derive a new wrapper:
+/// ```swift
+/// let derivedWrapper = wrapper.derive(keyPath: \.path.to.your.property)
+/// ```
+///
 /// - attention: When an observation is added, it would send an event to the observation
 /// for the first time immediately.
 /// - attention: Changing nothing inside the value would not trigger the observation.
@@ -104,6 +113,20 @@ public final class ObservableWrapper<Value: Equatable> {
     /// - parameter action: The closure for the changes to be made to the value.
     public func mutate(action: @escaping (inout Value) -> Void) {
         action(&wrappedValue)
+    }
+
+    /// Derive a wrapper with a keypath from the current wrapper.
+    /// - parameter keyPath: the writable keypath to the property to derive a wrapper from
+    /// - returns a new, scoped wrapper to a property of the wrapped value
+    public func derive<T: Equatable>(
+        keyPath: WritableKeyPath<Value, T>
+    ) -> ObservableWrapper<T> {
+        let currentValue = wrappedValue[keyPath: keyPath]
+        let output = ObservableWrapper<T>(initialValue: currentValue)
+        output.addObservation { [weak self] in
+            self?.wrappedValue[keyPath: keyPath] = $0
+        }
+        return output
     }
 
     // MARK: Private
