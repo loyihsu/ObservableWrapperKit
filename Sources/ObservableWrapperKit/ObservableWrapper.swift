@@ -46,6 +46,23 @@
 /// )
 /// ```
 ///
+/// When adding an observation, you can set `removeDuplicates` signal
+/// to prevent unchanging states to trigger specific observations.
+///
+/// ```swift
+/// wrapper.addObservation(removeDuplicates: true) { newValue in
+///     print(newValue)
+/// }
+/// ```
+///
+/// ```swift
+/// wrapper.addObservation(
+///     ActionObservation(removeDuplicates: true) { newValue in
+///         print(newValue)
+///     }
+/// )
+/// ```
+///
 /// When you create an observation, an `ObservationIdentifier` would be returned.
 /// It can be used to remove observation from the wrapper you start your observation with.
 ///
@@ -68,7 +85,6 @@
 ///
 /// - attention: When an observation is added, it would send an event to the observation
 /// for the first time immediately.
-/// - attention: Changing nothing inside the value would not trigger the observation.
 /// - warning: It is strongly discouraged to use this class with a reference type.
 public final class ObservableWrapper<Value: Equatable> {
     // MARK: - Properties
@@ -78,10 +94,7 @@ public final class ObservableWrapper<Value: Equatable> {
     /// The current value inside the container.
     public private(set) var wrappedValue: Value {
         willSet {
-            // Do not trigger the observations if value doesn't change.
-            if wrappedValue != newValue {
-                valueWillChange(newValue)
-            }
+            valueWillChange(newValue, isDuplicate: wrappedValue == newValue)
         }
     }
 
@@ -119,14 +132,21 @@ public final class ObservableWrapper<Value: Equatable> {
     }
 
     /// Add an observation action as a callback action.
+    /// - parameter removeDuplicates: When set to true, it does not trigger the observations if value doesn't change. (default: `false`)
     /// - parameter callback: The callback value that would be called when value changes.
     /// - attention: When an observation is added, it would send an event to
     /// the observation for the first time immediately.
     @discardableResult
     public func addObservation(
+        removeDuplicates: Bool = false,
         callback: @escaping (Value) -> Void
     ) -> ObservationIdentifier {
-        addObservation(ActionObservation(onChangeAction: callback))
+        addObservation(
+            ActionObservation(
+                removeDuplicates: removeDuplicates,
+                onChangeAction: callback
+            )
+        )
     }
 
     /// Remove an observation with the identifier.
@@ -157,9 +177,15 @@ public final class ObservableWrapper<Value: Equatable> {
     // MARK: Private
 
     /// Notify all the observations the value changed.
-    private func valueWillChange(_ newValue: Value) {
+    /// - parameter newValue: The value to publish to the observations.
+    /// - parameter isDuplicate: Whether the value is changed.
+    private func valueWillChange(_ newValue: Value, isDuplicate: Bool) {
         observations.values.forEach {
-            $0.onChange(of: newValue)
+            if $0.removeDuplicates == true, isDuplicate {
+                return
+            } else {
+                $0.onChange(of: newValue)
+            }
         }
     }
 }

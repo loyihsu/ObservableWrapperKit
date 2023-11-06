@@ -9,7 +9,12 @@
 public protocol ObservationProtocol<Value> {
     // The value is required to be Equatable for the diffing to work.
     associatedtype Value: Equatable
+    var removeDuplicates: Bool { get }
 
     /// Action triggered when the observed action changed.
     func onChange(of value: Value)
+}
+
+public extension ObservationProtocol {
+    var removeDuplicates: Bool { false }
 }
