@@ -89,4 +89,32 @@ final class ObservableWrapperKitTests: XCTestCase {
             XCTAssertNil(wrapper)
         }
     }
+
+    func testRemoveObservation() {
+        let wrapper = ObservableWrapper(initialValue: 0)
+        var output = [Int]()
+        let id = wrapper.addObservation {
+            output.append($0)
+        }
+
+        wrapper.mutate {
+            $0 = 1
+        }
+
+        wrapper.mutate {
+            $0 = 2
+        }
+
+        wrapper.removeObservation(id)
+
+        wrapper.mutate {
+            $0 = 3
+        }
+
+        XCTAssertEqual(output, [0, 1, 2])
+
+        addTeardownBlock { [weak wrapper] in
+            XCTAssertNil(wrapper)
+        }
+    }
 }

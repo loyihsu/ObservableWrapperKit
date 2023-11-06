@@ -46,6 +46,17 @@
 /// )
 /// ```
 ///
+/// When you create an observation, an `ObservationIdentifier` would be returned.
+/// It can be used to remove observation from the wrapper you start your observation with.
+///
+/// ```swift
+/// let id = wrapper.addObservation {
+///     print($0)
+/// }
+///
+/// wrapper.removeObservation(id)
+/// ```
+///
 /// `ObservableWrapper` also supports to derive a wrapper using a wriable keypath.
 /// This allows you to derive a value inside wrapper's value structure
 /// as a new wrapper and writes back changes when changes are made to the new wrapper.
@@ -77,7 +88,7 @@ public final class ObservableWrapper<Value: Equatable> {
     // MARK: Private
 
     /// Storage for all the observations that would get notified when a value changed.
-    private var observations: [any ObservationProtocol<Value>] = []
+    private var observations: [ObservationIdentifier: any ObservationProtocol<Value>] = [:]
 
     // MARK: - Initialisers
 
@@ -94,19 +105,33 @@ public final class ObservableWrapper<Value: Equatable> {
     /// Add an observation object.
     /// - attention: When an observation is added, it would send an event
     /// to the observation for the first time immediately.
-    public func addObservation(_ observation: any ObservationProtocol<Value>) {
-        observations.append(observation)
+    @discardableResult
+    public func addObservation(
+        _ observation: any ObservationProtocol<Value>
+    ) -> ObservationIdentifier {
+        let identifier = ObservationIdentifier()
+        observations[identifier] = observation
 
         // Publish the first event.
         observation.onChange(of: wrappedValue)
+
+        return identifier
     }
 
     /// Add an observation action as a callback action.
     /// - parameter callback: The callback value that would be called when value changes.
     /// - attention: When an observation is added, it would send an event to
     /// the observation for the first time immediately.
-    public func addObservation(callback: @escaping (Value) -> Void) {
+    @discardableResult
+    public func addObservation(
+        callback: @escaping (Value) -> Void
+    ) -> ObservationIdentifier {
         addObservation(ActionObservation(onChangeAction: callback))
+    }
+
+    /// Remove an observation with the identifier.
+    public func removeObservation(_ identifier: ObservationIdentifier) {
+        observations[identifier] = nil
     }
 
     /// Mutate the contained value.
@@ -133,7 +158,7 @@ public final class ObservableWrapper<Value: Equatable> {
 
     /// Notify all the observations the value changed.
     private func valueWillChange(_ newValue: Value) {
-        observations.forEach {
+        observations.values.forEach {
             $0.onChange(of: newValue)
         }
     }
