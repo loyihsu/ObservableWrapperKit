@@ -6,7 +6,7 @@
 //
 
 /// An observable container that wraps around an `Equatable`-conforming value.
-/// When the value is changed, it would notify all the observations.
+/// When the value is changed, it would notify the observations.
 ///
 /// To create a wrapper, you need to provide an initial value:
 /// ```swift
@@ -46,7 +46,7 @@
 /// )
 /// ```
 ///
-/// When adding an observation, you can set `removeDuplicates` signal
+/// When adding an observation, you can set the `removeDuplicates` signal
 /// to prevent unchanging states to trigger specific observations.
 ///
 /// ```swift
