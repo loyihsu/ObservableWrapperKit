@@ -228,4 +228,80 @@ final class ObservableWrapperKitTests: XCTestCase {
             XCTAssertNil(wrapper)
         }
     }
+
+    func testTwoWayWithDerive() {
+        struct DerivableValue: Equatable {
+            var value: SubValue
+            struct SubValue: Equatable {
+                var text: String
+            }
+        }
+
+        let wrapper = ObservableWrapper(
+            initialValue: DerivableValue(
+                value: .init(text: "initial")
+            )
+        )
+
+        XCTAssertEqual(
+            wrapper.wrappedValue,
+            DerivableValue(value: .init(text: "initial"))
+        )
+
+        let derivedWrapper = wrapper.derive(keyPath: \.value.text)
+
+        derivedWrapper.mutate {
+            $0 = "changed"
+        }
+
+        XCTAssertEqual(
+            wrapper.wrappedValue,
+            DerivableValue(value: .init(text: "changed"))
+        )
+
+        wrapper.mutate {
+            $0.value.text = "another changed"
+        }
+
+        XCTAssertEqual(
+            derivedWrapper.wrappedValue,
+            "another changed"
+        )
+
+        addTeardownBlock { [weak wrapper] in
+            XCTAssertNil(wrapper)
+        }
+    }
+
+    func testMap() {
+        let wrapper = ObservableWrapper<String?>(initialValue: nil)
+        
+        let isEmpty = wrapper.map {
+            $0 == nil || $0 == ""
+        }
+
+        var output = [Bool]()
+
+        isEmpty.addObservation {
+            output.append($0)
+        }
+
+        wrapper.mutate {
+            $0 = "Hello world"
+        }
+
+        wrapper.mutate {
+            $0 = ""
+        }
+
+        wrapper.mutate {
+            $0 = "Yeah"
+        }
+
+        wrapper.mutate {
+            $0 = nil
+        }
+
+        XCTAssertEqual(output, [true, false, true, false, true])
+    }
 }

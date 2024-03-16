@@ -103,6 +103,9 @@ public final class ObservableWrapper<Value: Equatable> {
     /// Storage for all the observations that would get notified when a value changed.
     private var observations: [ObservationIdentifier: any ObservationProtocol<Value>] = [:]
 
+    /// Prevent repeated triggering.
+    private var shouldTriggerObservations = true
+
     // MARK: - Initialisers
 
     /// Initialise a wrapper with an initial value.
@@ -160,16 +163,33 @@ public final class ObservableWrapper<Value: Equatable> {
         action(&wrappedValue)
     }
 
+    /// Change the type of the wrapped value.
+    /// - parameter handler: the handler to conform value to another type
+    /// - returns a new, converted `ObservableWrapper` that would get notified when parent value changed
+    public func map<T>(_ handler: @escaping (Value) -> T) -> ObservableWrapper<T> {
+        let updatedValue = handler(wrappedValue)
+        let output = ObservableWrapper<T>(initialValue: updatedValue)
+        addObservation { changedValue in
+            output.mutate {
+                $0 = handler(changedValue)
+            }
+        }
+        return output
+    }
+
     /// Derive a wrapper with a keypath from the current wrapper.
     /// - parameter keyPath: the writable keypath to the property to derive a wrapper from
     /// - returns a new, scoped wrapper to a property of the wrapped value
     public func derive<T: Equatable>(
         keyPath: WritableKeyPath<Value, T>
     ) -> ObservableWrapper<T> {
-        let currentValue = wrappedValue[keyPath: keyPath]
-        let output = ObservableWrapper<T>(initialValue: currentValue)
-        output.addObservation { [weak self] in
-            self?.wrappedValue[keyPath: keyPath] = $0
+        let output = self.map { value in
+            value[keyPath: keyPath]
+        }
+        output.addObservation { [weak self] value in
+            self?.withNoRepeatedObservationTriggers {
+                self?.wrappedValue[keyPath: keyPath] = value
+            }
         }
         return output
     }
@@ -180,6 +200,7 @@ public final class ObservableWrapper<Value: Equatable> {
     /// - parameter newValue: The value to publish to the observations.
     /// - parameter isDuplicate: Whether the value is changed.
     private func valueWillChange(_ newValue: Value, isDuplicate: Bool) {
+        guard shouldTriggerObservations else { return }
         observations.values.forEach {
             if $0.removeDuplicates == true, isDuplicate {
                 return
@@ -187,5 +208,12 @@ public final class ObservableWrapper<Value: Equatable> {
                 $0.onChange(of: newValue)
             }
         }
+    }
+
+    /// Turn off observation triggering to prevent repeated triggers.
+    private func withNoRepeatedObservationTriggers(_ action: @escaping () -> Void) {
+        shouldTriggerObservations = false
+        action()
+        shouldTriggerObservations = true
     }
 }
