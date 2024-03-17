@@ -94,7 +94,7 @@ public final class ObservableWrapper<Value: Equatable> {
     /// The current value inside the container.
     public private(set) var wrappedValue: Value {
         willSet {
-            valueWillChange(newValue, isDuplicate: wrappedValue == newValue)
+            self.valueWillChange(newValue, isDuplicate: self.wrappedValue == newValue)
         }
     }
 
@@ -126,10 +126,10 @@ public final class ObservableWrapper<Value: Equatable> {
         _ observation: any ObservationProtocol<Value>
     ) -> ObservationIdentifier {
         let identifier = ObservationIdentifier()
-        observations[identifier] = observation
+        self.observations[identifier] = observation
 
         // Publish the first event.
-        observation.onChange(of: wrappedValue)
+        observation.onChange(of: self.wrappedValue)
 
         return identifier
     }
@@ -144,7 +144,7 @@ public final class ObservableWrapper<Value: Equatable> {
         removeDuplicates: Bool = false,
         callback: @escaping (Value) -> Void
     ) -> ObservationIdentifier {
-        addObservation(
+        self.addObservation(
             ActionObservation(
                 removeDuplicates: removeDuplicates,
                 onChangeAction: callback
@@ -154,13 +154,13 @@ public final class ObservableWrapper<Value: Equatable> {
 
     /// Remove an observation with the identifier.
     public func removeObservation(_ identifier: ObservationIdentifier) {
-        observations[identifier] = nil
+        self.observations[identifier] = nil
     }
 
     /// Mutate the contained value.
     /// - parameter action: The closure for the changes to be made to the value.
     public func mutate(action: @escaping (inout Value) -> Void) {
-        action(&wrappedValue)
+        action(&self.wrappedValue)
     }
 
     /// Change the type of the wrapped value.
@@ -169,7 +169,7 @@ public final class ObservableWrapper<Value: Equatable> {
     public func map<T>(_ handler: @escaping (Value) -> T) -> ObservableWrapper<T> {
         let updatedValue = handler(wrappedValue)
         let output = ObservableWrapper<T>(initialValue: updatedValue)
-        addObservation { changedValue in
+        self.addObservation { changedValue in
             output.mutate {
                 $0 = handler(changedValue)
             }
@@ -200,20 +200,20 @@ public final class ObservableWrapper<Value: Equatable> {
     /// - parameter newValue: The value to publish to the observations.
     /// - parameter isDuplicate: Whether the value is changed.
     private func valueWillChange(_ newValue: Value, isDuplicate: Bool) {
-        guard shouldTriggerObservations else { return }
-        observations.values.forEach {
-            if $0.removeDuplicates == true, isDuplicate {
-                return
+        guard self.shouldTriggerObservations else { return }
+        for value in self.observations.values {
+            if value.removeDuplicates == true, isDuplicate {
+                continue
             } else {
-                $0.onChange(of: newValue)
+                value.onChange(of: newValue)
             }
         }
     }
 
     /// Turn off observation triggering to prevent repeated triggers.
     private func withNoRepeatedObservationTriggers(_ action: @escaping () -> Void) {
-        shouldTriggerObservations = false
+        self.shouldTriggerObservations = false
         action()
-        shouldTriggerObservations = true
+        self.shouldTriggerObservations = true
     }
 }

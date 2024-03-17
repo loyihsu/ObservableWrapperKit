@@ -18,7 +18,7 @@ final class ObservableWrapperKitTests: XCTestCase {
             output.append($0)
         }
 
-        testcase.forEach { testcase in
+        for testcase in testcase {
             wrapper.mutate { mutatingValue in
                 mutatingValue = testcase
             }
@@ -42,7 +42,7 @@ final class ObservableWrapperKitTests: XCTestCase {
             }
         )
 
-        testcase.forEach { testcase in
+        for testcase in testcase {
             wrapper.mutate { mutatingValue in
                 mutatingValue = testcase
             }
@@ -117,113 +117,113 @@ final class ObservableWrapperKitTests: XCTestCase {
             XCTAssertNil(wrapper)
         }
     }
-    
+
     func testRemoveDuplicate() {
         let wrapper = ObservableWrapper(initialValue: 0)
         var output = [Int]()
-        
+
         wrapper.addObservation(removeDuplicates: true) {
             output.append($0)
         }
-        
+
         wrapper.mutate {
             $0 = 0
         }
-        
+
         wrapper.mutate {
             $0 = 1
         }
-        
+
         wrapper.mutate {
             $0 = 1
         }
-        
+
         wrapper.mutate {
             $0 = 2
         }
-        
+
         wrapper.mutate {
             $0 = 2
         }
-        
+
         XCTAssertEqual(output, [0, 1, 2])
-        
+
         addTeardownBlock { [weak wrapper] in
             XCTAssertNil(wrapper)
         }
     }
-    
+
     func testWithoutRemoveDuplicate() {
         let wrapper = ObservableWrapper(initialValue: 0)
         var output = [Int]()
-        
+
         wrapper.addObservation {
             output.append($0)
         }
-        
+
         wrapper.mutate {
             $0 = 0
         }
-        
+
         wrapper.mutate {
             $0 = 1
         }
-        
+
         wrapper.mutate {
             $0 = 1
         }
-        
+
         wrapper.mutate {
             $0 = 2
         }
-        
+
         wrapper.mutate {
             $0 = 2
         }
-        
+
         XCTAssertEqual(output, [0, 0, 1, 1, 2, 2])
-        
+
         addTeardownBlock { [weak wrapper] in
             XCTAssertNil(wrapper)
         }
     }
-    
+
     func testMultipleObservationWithOrWithoutRemoveDuplicate() {
         let wrapper = ObservableWrapper(initialValue: 0)
         var outputWithDuplicate = [Int]()
         var outputWithoutDuplicate = [Int]()
-        
+
         wrapper.addObservation {
             outputWithDuplicate.append($0)
         }
-        
+
         wrapper.addObservation(removeDuplicates: true) {
             outputWithoutDuplicate.append($0)
         }
-        
+
         wrapper.mutate {
             $0 = 0
         }
-        
+
         wrapper.mutate {
             $0 = 1
         }
-        
+
         wrapper.mutate {
             $0 = 1
         }
-        
+
         wrapper.mutate {
             $0 = 2
         }
-        
+
         wrapper.mutate {
             $0 = 2
         }
-        
+
         XCTAssertEqual(outputWithDuplicate, [0, 0, 1, 1, 2, 2])
         XCTAssertEqual(outputWithoutDuplicate, [0, 1, 2])
-        
+
         addTeardownBlock { [weak wrapper] in
             XCTAssertNil(wrapper)
         }
@@ -275,7 +275,7 @@ final class ObservableWrapperKitTests: XCTestCase {
 
     func testMap() {
         let wrapper = ObservableWrapper<String?>(initialValue: nil)
-        
+
         let isEmpty = wrapper.map {
             $0 == nil || $0 == ""
         }

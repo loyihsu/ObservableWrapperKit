@@ -1,6 +1,6 @@
 //
 //  ActionObservation.swift
-//  ObservableContainerKit
+//  ObservableWrapperKit
 //
 //  Created by Loyi Hsu on 2023/11/5.
 //
@@ -9,7 +9,7 @@
 public struct ActionObservation<Value: Equatable>: ObservationProtocol {
     private var onChangeAction: (Value) -> Void
     public var removeDuplicates: Bool
-    
+
     /// - parameter removeDuplicates: When set to true, it does not trigger the observations if value doesn't change. (default: `false`)
     /// - parameter onChangeAction: The callback value that would be called when value changes.
     public init(
@@ -21,6 +21,6 @@ public struct ActionObservation<Value: Equatable>: ObservationProtocol {
     }
 
     public func onChange(of value: Value) {
-        onChangeAction(value)
+        self.onChangeAction(value)
     }
 }
