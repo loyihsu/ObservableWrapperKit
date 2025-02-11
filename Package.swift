@@ -5,6 +5,7 @@ import PackageDescription
 let package = Package(
     name: "ObservableWrapperKit",
     platforms: [
+        // Runtime support for parameterized protocol types.
         .macOS(.v13), .iOS(.v16),
     ],
     products: [
